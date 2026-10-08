@@ -78,14 +78,14 @@ app.post('/api/schedules', async (req, res) => {
   const pool = getPool()
 
   if (!pool) {
+    const errorDetails = getDbStatus().error || 'MySQL 연결 정보(MYSQL_URL)가 설정되지 않았습니다.'
     return res.status(503).json({
-      error: 'Database not connected',
-      details: getDbStatus().error,
+      error: `데이터베이스에 연결되지 않았습니다: ${errorDetails}`,
     })
   }
 
   if (!title || !date) {
-    return res.status(400).json({ error: 'title and date are required' })
+    return res.status(400).json({ error: '제목(title)과 날짜(date)는 필수 입력 항목입니다.' })
   }
 
   try {
@@ -101,7 +101,8 @@ app.post('/api/schedules', async (req, res) => {
       priority,
     })
   } catch (err) {
-    res.status(500).json({ error: err.message })
+    console.error('[Create Schedule Error]:', err)
+    res.status(500).json({ error: `일정 저장 실패: ${err.message}` })
   }
 })
 

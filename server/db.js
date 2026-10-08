@@ -29,7 +29,14 @@ export async function initDatabase() {
 
     const connectionUri = process.env.MYSQL_URL || process.env.DATABASE_URL
 
+    console.log('[DB Config Check]', {
+      hasMysqlUrl: Boolean(process.env.MYSQL_URL),
+      hasDatabaseUrl: Boolean(process.env.DATABASE_URL),
+      hasMysqlHost: Boolean(process.env.MYSQLHOST),
+    })
+
     if (connectionUri) {
+      console.log('[DB Init] Connecting via URI...')
       pool = mysql.createPool(connectionUri)
     } else {
       const dbConfig = {
