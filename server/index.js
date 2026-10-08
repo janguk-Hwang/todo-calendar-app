@@ -212,10 +212,13 @@ app.delete('/api/schedules/completed/:date', async (req, res) => {
 const distPath = path.resolve(__dirname, '../dist')
 app.use(express.static(distPath))
 
-app.get('*', (req, res, next) => {
-  if (req.path.startsWith('/api')) {
-    return next()
-  }
+// 404 for unmatched API routes
+app.use('/api', (req, res) => {
+  res.status(404).json({ error: 'API endpoint not found' })
+})
+
+// Catch-all route for Single Page Application (SPA)
+app.use((req, res) => {
   res.sendFile(path.join(distPath, 'index.html'))
 })
 
