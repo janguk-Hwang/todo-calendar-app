@@ -221,8 +221,8 @@ app.get('*', (req, res, next) => {
 
 async function start() {
   await initDatabase()
-  app.listen(PORT, () => {
-    console.log(`Backend API Server running at http://localhost:${PORT}`)
+  app.listen(PORT, '0.0.0.0', () => {
+    console.log(`Backend API Server running at http://0.0.0.0:${PORT}`)
   })
 }
 

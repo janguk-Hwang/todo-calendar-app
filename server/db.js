@@ -27,31 +27,41 @@ export async function initDatabase() {
   try {
     dotenv.config({ path: path.resolve(__dirname, '../.env'), override: true })
 
-    const dbConfig = {
-      host: process.env.DB_HOST || 'localhost',
-      port: Number(process.env.DB_PORT) || 3306,
-      user: process.env.DB_USER || 'root',
-      password: process.env.DB_PASSWORD || '',
+    const connectionUri = process.env.MYSQL_URL || process.env.DATABASE_URL
+
+    if (connectionUri) {
+      pool = mysql.createPool(connectionUri)
+    } else {
+      const dbConfig = {
+        host: process.env.MYSQLHOST || process.env.DB_HOST || 'localhost',
+        port: Number(process.env.MYSQLPORT || process.env.DB_PORT) || 3306,
+        user: process.env.MYSQLUSER || process.env.DB_USER || 'root',
+        password: process.env.MYSQLPASSWORD || process.env.MYSQL_ROOT_PASSWORD || process.env.DB_PASSWORD || '',
+      }
+      const dbName = process.env.MYSQLDATABASE || process.env.MYSQL_DATABASE || process.env.DB_NAME || 'todo_calendar_db'
+
+      // Root connection to ensure database exists (for local or custom servers)
+      try {
+        const tempConnection = await mysql.createConnection(dbConfig)
+        await tempConnection.query(
+          `CREATE DATABASE IF NOT EXISTS \`${dbName}\` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci`
+        )
+        await tempConnection.end()
+      } catch (dbErr) {
+        // If user has restricted privileges (e.g. cloud managed DB), continue directly to pool
+        console.warn(`[MySQL DB Check Notice]: ${dbErr.message}`)
+      }
+
+      pool = mysql.createPool({
+        ...dbConfig,
+        database: dbName,
+        waitForConnections: true,
+        connectionLimit: 10,
+        queueLimit: 0,
+      })
     }
-    const dbName = process.env.DB_NAME || 'todo_calendar_db'
 
-    // 1. Root connection without specific DB to create database if not exists
-    const tempConnection = await mysql.createConnection(dbConfig)
-    await tempConnection.query(
-      `CREATE DATABASE IF NOT EXISTS \`${dbName}\` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci`
-    )
-    await tempConnection.end()
-
-    // 2. Create pool connected to database
-    pool = mysql.createPool({
-      ...dbConfig,
-      database: dbName,
-      waitForConnections: true,
-      connectionLimit: 10,
-      queueLimit: 0,
-    })
-
-    // 3. Create tables if not exists
+    // Create table if not exists
     const createTableQuery = `
       CREATE TABLE IF NOT EXISTS schedules (
         id INT AUTO_INCREMENT PRIMARY KEY,
